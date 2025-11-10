@@ -72,6 +72,7 @@ const FONT_OPTIONS = [
 export default function Home() {
   const [artistName, setArtistName] = useState('');
   const [highlightColor, setHighlightColor] = useState('#FF8C00');
+  const [textColor, setTextColor] = useState('#FFFFFF');
   const [selectedFont, setSelectedFont] = useState('Oswald');
   const [selectedHighlightFont, setSelectedHighlightFont] = useState('Oswald');
   const [fontSize, setFontSize] = useState(70);
@@ -87,6 +88,7 @@ export default function Home() {
   useEffect(() => {
     const savedArtistName = localStorage.getItem('artistName');
     const savedHighlightColor = localStorage.getItem('highlightColor');
+    const savedTextColor = localStorage.getItem('textColor');
     const savedFont = localStorage.getItem('selectedFont');
     const savedHighlightFont = localStorage.getItem('selectedHighlightFont');
     const savedFontSize = localStorage.getItem('fontSize');
@@ -97,6 +99,9 @@ export default function Home() {
     }
     if (savedHighlightColor) {
       setHighlightColor(savedHighlightColor);
+    }
+    if (savedTextColor) {
+      setTextColor(savedTextColor);
     }
     if (savedFont) {
       setSelectedFont(savedFont);
@@ -206,6 +211,12 @@ export default function Home() {
   const handleHighlightColorChange = (color: string) => {
     setHighlightColor(color);
     localStorage.setItem('highlightColor', color);
+  };
+
+  // Save text color to localStorage when it changes
+  const handleTextColorChange = (color: string) => {
+    setTextColor(color);
+    localStorage.setItem('textColor', color);
   };
 
   // Save font to localStorage when it changes
@@ -568,10 +579,10 @@ export default function Home() {
       const firstLineY = startY; // Using 'middle' baseline, this is vertical center of the line
 
       // Use a thinner, typographic opening quote (proportional to font size)
-      const openingQuote = '“';
+      const openingQuote = '"';
       const quoteMarkSize = effectiveFontSize * 1.57; // Proportional to font size (~110px for 70px font)
       ctx.font = `300 ${quoteMarkSize}px "Times New Roman", Georgia, serif`;
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = textColor;
       ctx.textAlign = 'left';
 
       const quoteWidth = ctx.measureText(openingQuote).width;
@@ -623,7 +634,7 @@ export default function Home() {
           ctx.fillStyle = highlightColor;
           ctx.font = `bold ${effectiveFontSize}px ${highlightFontFamily}`;
         } else {
-          ctx.fillStyle = '#ffffff';
+          ctx.fillStyle = textColor;
           ctx.font = `bold ${effectiveFontSize}px ${fontFamily}`;
         }
         
@@ -678,6 +689,7 @@ export default function Home() {
       // Reset all state to defaults
       setArtistName('');
       setHighlightColor('#FF8C00');
+      setTextColor('#FFFFFF');
       setSelectedFont('Oswald');
       setSelectedHighlightFont('Oswald');
       setFontSize(70);
@@ -695,7 +707,7 @@ export default function Home() {
         drawQuoteOnCanvas(canvas, quote);
       }
     });
-  }, [generatedQuotes, artistName, highlightColor, selectedFont, selectedHighlightFont, fontSize]);
+  }, [generatedQuotes, artistName, highlightColor, textColor, selectedFont, selectedHighlightFont, fontSize]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
@@ -729,6 +741,26 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
+                  Text Color (for main quote text)
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => handleTextColorChange(e.target.value)}
+                    className="h-12 w-20 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={textColor}
+                    onChange={(e) => handleTextColorChange(e.target.value)}
+                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                    placeholder="#FFFFFF"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
                   Highlight Color (for emphasized words)
                 </label>
                 <div className="flex items-center gap-4">
@@ -747,6 +779,8 @@ export default function Home() {
                   />
                 </div>
               </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Font Family (for quote text)
@@ -764,8 +798,6 @@ export default function Home() {
                   ))}
                 </select>
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Font Family (for highlighted words)
@@ -822,10 +854,11 @@ export default function Home() {
             <div className="mt-4 p-4 bg-gray-900 rounded-lg border border-gray-700">
               <p className="text-xs text-gray-400 mb-2">Preview:</p>
               <div
-                className="text-white font-bold uppercase leading-tight"
+                className="font-bold uppercase leading-tight"
                 style={{ 
                   fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.family || 'Arial, sans-serif',
-                  fontSize: `${fontSize}px`
+                  fontSize: `${fontSize}px`,
+                  color: textColor
                 }}
               >
                 Sample Quote Text
@@ -842,10 +875,11 @@ export default function Home() {
                   Highlighted
                 </span>
                 <span
-                  className="font-bold uppercase text-white"
+                  className="font-bold uppercase"
                   style={{ 
                     fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.family || 'Arial, sans-serif',
-                    fontSize: `${fontSize * 0.8}px`
+                    fontSize: `${fontSize * 0.8}px`,
+                    color: textColor
                   }}
                 >
                   Word
