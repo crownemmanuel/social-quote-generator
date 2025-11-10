@@ -42,6 +42,30 @@ const FONT_OPTIONS = [
   { name: 'Roboto', value: 'Roboto', family: '"Roboto", sans-serif', weights: '400;700;900' },
   { name: 'Inter', value: 'Inter', family: '"Inter", sans-serif', weights: '400;600;700;800' },
   { name: 'Barlow', value: 'Barlow', family: '"Barlow", sans-serif', weights: '400;600;700;900' },
+  // Fancy Script Fonts
+  { name: 'Dancing Script', value: 'Dancing Script', family: '"Dancing Script", cursive', weights: '400;700' },
+  { name: 'Great Vibes', value: 'Great Vibes', family: '"Great Vibes", cursive', weights: '400' },
+  { name: 'Pacifico', value: 'Pacifico', family: '"Pacifico", cursive', weights: '400' },
+  { name: 'Satisfy', value: 'Satisfy', family: '"Satisfy", cursive', weights: '400' },
+  { name: 'Caveat', value: 'Caveat', family: '"Caveat", cursive', weights: '400;700' },
+  { name: 'Kalam', value: 'Kalam', family: '"Kalam", cursive', weights: '400;700' },
+  // Bold Display Fonts
+  { name: 'Righteous', value: 'Righteous', family: '"Righteous", cursive', weights: '400' },
+  { name: 'Anton', value: 'Anton', family: '"Anton", sans-serif', weights: '400' },
+  { name: 'Bangers', value: 'Bangers', family: '"Bangers", cursive', weights: '400' },
+  { name: 'Fredoka One', value: 'Fredoka One', family: '"Fredoka One", cursive', weights: '400' },
+  { name: 'Lobster', value: 'Lobster', family: '"Lobster", cursive', weights: '400' },
+  { name: 'Crete Round', value: 'Crete Round', family: '"Crete Round", serif', weights: '400' },
+  // Modern Rounded Fonts
+  { name: 'Comfortaa', value: 'Comfortaa', family: '"Comfortaa", sans-serif', weights: '400;700' },
+  { name: 'Quicksand', value: 'Quicksand', family: '"Quicksand", sans-serif', weights: '400;600;700' },
+  { name: 'Nunito', value: 'Nunito', family: '"Nunito", sans-serif', weights: '400;700;900' },
+  { name: 'Varela Round', value: 'Varela Round', family: '"Varela Round", sans-serif', weights: '400' },
+  // Elegant Serif Fonts
+  { name: 'Merriweather', value: 'Merriweather', family: '"Merriweather", serif', weights: '400;700;900' },
+  { name: 'Crimson Text', value: 'Crimson Text', family: '"Crimson Text", serif', weights: '400;600;700' },
+  { name: 'Libre Baskerville', value: 'Libre Baskerville', family: '"Libre Baskerville", serif', weights: '400;700' },
+  { name: 'Lora', value: 'Lora', family: '"Lora", serif', weights: '400;700' },
   { name: 'Arial', value: 'Arial', family: 'Arial, sans-serif', weights: '' },
 ];
 
@@ -82,7 +106,12 @@ export default function Home() {
       try {
         const parsed = JSON.parse(savedQuoteInputs);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setQuoteInputs(parsed);
+          // Ensure imageUrl is null for all loaded quotes (images are not saved)
+          const quotesWithNullImages = parsed.map(quote => ({
+            ...quote,
+            imageUrl: null
+          }));
+          setQuoteInputs(quotesWithNullImages);
         }
       } catch (error) {
         console.error('Failed to parse saved quote inputs:', error);
@@ -96,15 +125,21 @@ export default function Home() {
   }, []);
 
   // Save quoteInputs to localStorage whenever they change (but not during initial load)
+  // Exclude imageUrl to avoid storage quota issues - only save text fields
   useEffect(() => {
     if (!isInitialLoad.current && quoteInputs.length > 0) {
       try {
-        localStorage.setItem('quoteInputs', JSON.stringify(quoteInputs));
+        // Create a version without images for storage
+        const quoteInputsWithoutImages = quoteInputs.map(({ imageUrl, ...rest }) => ({
+          ...rest,
+          imageUrl: null // Explicitly set to null to save space
+        }));
+        localStorage.setItem('quoteInputs', JSON.stringify(quoteInputsWithoutImages));
       } catch (error) {
         console.error('Failed to save quote inputs to localStorage:', error);
         // If localStorage is full, try to clear old data or notify user
         if (error instanceof DOMException && error.code === 22) {
-          alert('Storage is full. Please clear some data or use fewer images.');
+          alert('Storage is full. Please clear some data or use the "Clear All & Start New" button.');
         }
       }
     }
