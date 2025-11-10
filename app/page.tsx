@@ -116,8 +116,25 @@ export default function Home() {
               message = String(asAny);
             }
           }
-          alert(`Failed to convert HEIC image.\nReason: ${message}\nPlease try converting to JPEG manually or use a different image.`);
-          return;
+          // Attempt server-side fallback using /api/convert with sharp
+          try {
+            const form = new FormData();
+            form.append('file', file);
+            const res = await fetch('/api/convert', { method: 'POST', body: form });
+            if (!res.ok) {
+              const text = await res.text();
+              throw new Error(text || `Server conversion failed with ${res.status}`);
+            }
+            const blob = await res.blob();
+            fileToRead = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), {
+              type: 'image/jpeg',
+            });
+            console.log('Server-side HEIC conversion successful!');
+          } catch (serverErr) {
+            const serverMsg = serverErr instanceof Error ? serverErr.message : String(serverErr);
+            alert(`Failed to convert HEIC image.\nReason: ${message}\nServer fallback: ${serverMsg}\nPlease try converting to JPEG manually or use a different image.`);
+            return;
+          }
         }
       }
 
