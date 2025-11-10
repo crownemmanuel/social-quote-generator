@@ -73,6 +73,7 @@ export default function Home() {
   const [artistName, setArtistName] = useState('');
   const [highlightColor, setHighlightColor] = useState('#FF8C00');
   const [selectedFont, setSelectedFont] = useState('Oswald');
+  const [selectedHighlightFont, setSelectedHighlightFont] = useState('Oswald');
   const [fontSize, setFontSize] = useState(70);
   const [quoteInputs, setQuoteInputs] = useState<QuoteInput[]>([
     { id: '1', text: '', highlightedWord: '', imageUrl: null, textPosition: 'bottom' }
@@ -87,6 +88,7 @@ export default function Home() {
     const savedArtistName = localStorage.getItem('artistName');
     const savedHighlightColor = localStorage.getItem('highlightColor');
     const savedFont = localStorage.getItem('selectedFont');
+    const savedHighlightFont = localStorage.getItem('selectedHighlightFont');
     const savedFontSize = localStorage.getItem('fontSize');
     const savedQuoteInputs = localStorage.getItem('quoteInputs');
     
@@ -98,6 +100,9 @@ export default function Home() {
     }
     if (savedFont) {
       setSelectedFont(savedFont);
+    }
+    if (savedHighlightFont) {
+      setSelectedHighlightFont(savedHighlightFont);
     }
     if (savedFontSize) {
       setFontSize(parseInt(savedFontSize, 10));
@@ -145,7 +150,7 @@ export default function Home() {
     }
   }, [quoteInputs]);
 
-  // Load Google Fonts dynamically
+  // Load Google Fonts dynamically for main quote font
   useEffect(() => {
     const fontOption = FONT_OPTIONS.find(f => f.value === selectedFont);
     if (fontOption && fontOption.weights) {
@@ -168,6 +173,29 @@ export default function Home() {
     }
   }, [selectedFont]);
 
+  // Load Google Fonts dynamically for highlighted word font
+  useEffect(() => {
+    const fontOption = FONT_OPTIONS.find(f => f.value === selectedHighlightFont);
+    if (fontOption && fontOption.weights) {
+      const fontFamily = fontOption.value.replace(/\s+/g, '+');
+      const weights = fontOption.weights.replace(/;/g, ',');
+      const linkId = `google-font-highlight-${fontOption.value}`;
+      
+      // Remove existing font link if any
+      const existingLink = document.getElementById(linkId);
+      if (existingLink) {
+        existingLink.remove();
+      }
+      
+      // Add new font link
+      const link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${fontFamily}:wght@${weights}&display=swap`;
+      document.head.appendChild(link);
+    }
+  }, [selectedHighlightFont]);
+
   // Save artist name to localStorage when it changes
   const handleArtistNameChange = (name: string) => {
     setArtistName(name);
@@ -184,6 +212,12 @@ export default function Home() {
   const handleFontChange = (font: string) => {
     setSelectedFont(font);
     localStorage.setItem('selectedFont', font);
+  };
+
+  // Save highlight font to localStorage when it changes
+  const handleHighlightFontChange = (font: string) => {
+    setSelectedHighlightFont(font);
+    localStorage.setItem('selectedHighlightFont', font);
   };
 
   // Save font size to localStorage when it changes
@@ -482,9 +516,12 @@ export default function Home() {
     const maxWidth = 900;
     const bottomPadding = 200; // Space from bottom for artist name
     
-    // Get selected font family
+    // Get selected font families
     const fontOption = FONT_OPTIONS.find(f => f.value === selectedFont);
     const fontFamily = fontOption ? fontOption.family : 'Arial, sans-serif';
+    
+    const highlightFontOption = FONT_OPTIONS.find(f => f.value === selectedHighlightFont);
+    const highlightFontFamily = highlightFontOption ? highlightFontOption.family : 'Arial, sans-serif';
     
     ctx.font = `bold ${effectiveFontSize}px ${fontFamily}`;
     ctx.textAlign = 'center';
@@ -584,8 +621,10 @@ export default function Home() {
         
         if (shouldHighlight) {
           ctx.fillStyle = highlightColor;
+          ctx.font = `bold ${effectiveFontSize}px ${highlightFontFamily}`;
         } else {
           ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${effectiveFontSize}px ${fontFamily}`;
         }
         
         const wordWidth = ctx.measureText(lineWord).width;
@@ -640,6 +679,7 @@ export default function Home() {
       setArtistName('');
       setHighlightColor('#FF8C00');
       setSelectedFont('Oswald');
+      setSelectedHighlightFont('Oswald');
       setFontSize(70);
       setQuoteInputs([
         { id: Date.now().toString(), text: '', highlightedWord: '', imageUrl: null, textPosition: 'bottom' }
@@ -655,7 +695,7 @@ export default function Home() {
         drawQuoteOnCanvas(canvas, quote);
       }
     });
-  }, [generatedQuotes, artistName, highlightColor, selectedFont, fontSize]);
+  }, [generatedQuotes, artistName, highlightColor, selectedFont, selectedHighlightFont, fontSize]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
@@ -725,6 +765,28 @@ export default function Home() {
                 </select>
               </div>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Font Family (for highlighted words)
+                </label>
+                <select
+                  value={selectedHighlightFont}
+                  onChange={(e) => handleHighlightFontChange(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ fontFamily: FONT_OPTIONS.find(f => f.value === selectedHighlightFont)?.family || 'Arial, sans-serif' }}
+                >
+                  {FONT_OPTIONS.map((font) => (
+                    <option key={font.value} value={font.value} style={{ fontFamily: font.family }}>
+                      {font.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Choose a different font to make highlighted words stand out
+                </p>
+              </div>
+            </div>
             <div className="mt-4">
               <label className="block text-sm font-medium mb-2">
                 Font Size: {fontSize}px
@@ -772,7 +834,7 @@ export default function Home() {
                 <span
                   className="font-bold uppercase"
                   style={{ 
-                    fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.family || 'Arial, sans-serif',
+                    fontFamily: FONT_OPTIONS.find(f => f.value === selectedHighlightFont)?.family || 'Arial, sans-serif',
                     color: highlightColor,
                     fontSize: `${fontSize * 0.8}px`
                   }}
