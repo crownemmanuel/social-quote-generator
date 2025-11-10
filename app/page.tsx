@@ -8,6 +8,8 @@ interface QuoteInput {
   text: string;
   highlightedWord: string;
   imageUrl: string | null;
+  textPosition: 'top' | 'bottom';
+  fontSize?: number; // Optional per-quote font size override
 }
 
 interface GeneratedQuote {
@@ -16,6 +18,8 @@ interface GeneratedQuote {
   highlightedWord: string;
   imageUrl: string;
   image: HTMLImageElement;
+  textPosition: 'top' | 'bottom';
+  fontSize?: number; // Optional per-quote font size override
   cropData?: {
     x: number;
     y: number;
@@ -24,11 +28,28 @@ interface GeneratedQuote {
   };
 }
 
+// Font options for social media quotes
+const FONT_OPTIONS = [
+  { name: 'Montserrat', value: 'Montserrat', family: '"Montserrat", sans-serif', weights: '400;700;900' },
+  { name: 'Playfair Display', value: 'Playfair Display', family: '"Playfair Display", serif', weights: '400;700;900' },
+  { name: 'Oswald', value: 'Oswald', family: '"Oswald", sans-serif', weights: '400;600;700' },
+  { name: 'Raleway', value: 'Raleway', family: '"Raleway", sans-serif', weights: '400;600;700;800' },
+  { name: 'Bebas Neue', value: 'Bebas Neue', family: '"Bebas Neue", sans-serif', weights: '400' },
+  { name: 'Poppins', value: 'Poppins', family: '"Poppins", sans-serif', weights: '400;600;700;800' },
+  { name: 'Lato', value: 'Lato', family: '"Lato", sans-serif', weights: '400;700;900' },
+  { name: 'Roboto', value: 'Roboto', family: '"Roboto", sans-serif', weights: '400;700;900' },
+  { name: 'Inter', value: 'Inter', family: '"Inter", sans-serif', weights: '400;600;700;800' },
+  { name: 'Barlow', value: 'Barlow', family: '"Barlow", sans-serif', weights: '400;600;700;900' },
+  { name: 'Arial', value: 'Arial', family: 'Arial, sans-serif', weights: '' },
+];
+
 export default function Home() {
   const [artistName, setArtistName] = useState('');
   const [highlightColor, setHighlightColor] = useState('#FF8C00');
+  const [selectedFont, setSelectedFont] = useState('Oswald');
+  const [fontSize, setFontSize] = useState(70);
   const [quoteInputs, setQuoteInputs] = useState<QuoteInput[]>([
-    { id: '1', text: '', highlightedWord: '', imageUrl: null }
+    { id: '1', text: '', highlightedWord: '', imageUrl: null, textPosition: 'bottom' }
   ]);
   const [generatedQuotes, setGeneratedQuotes] = useState<GeneratedQuote[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -38,6 +59,8 @@ export default function Home() {
   useEffect(() => {
     const savedArtistName = localStorage.getItem('artistName');
     const savedHighlightColor = localStorage.getItem('highlightColor');
+    const savedFont = localStorage.getItem('selectedFont');
+    const savedFontSize = localStorage.getItem('fontSize');
     
     if (savedArtistName) {
       setArtistName(savedArtistName);
@@ -45,7 +68,36 @@ export default function Home() {
     if (savedHighlightColor) {
       setHighlightColor(savedHighlightColor);
     }
+    if (savedFont) {
+      setSelectedFont(savedFont);
+    }
+    if (savedFontSize) {
+      setFontSize(parseInt(savedFontSize, 10));
+    }
   }, []);
+
+  // Load Google Fonts dynamically
+  useEffect(() => {
+    const fontOption = FONT_OPTIONS.find(f => f.value === selectedFont);
+    if (fontOption && fontOption.weights) {
+      const fontFamily = fontOption.value.replace(/\s+/g, '+');
+      const weights = fontOption.weights.replace(/;/g, ',');
+      const linkId = `google-font-${fontOption.value}`;
+      
+      // Remove existing font link if any
+      const existingLink = document.getElementById(linkId);
+      if (existingLink) {
+        existingLink.remove();
+      }
+      
+      // Add new font link
+      const link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${fontFamily}:wght@${weights}&display=swap`;
+      document.head.appendChild(link);
+    }
+  }, [selectedFont]);
 
   // Save artist name to localStorage when it changes
   const handleArtistNameChange = (name: string) => {
@@ -57,6 +109,18 @@ export default function Home() {
   const handleHighlightColorChange = (color: string) => {
     setHighlightColor(color);
     localStorage.setItem('highlightColor', color);
+  };
+
+  // Save font to localStorage when it changes
+  const handleFontChange = (font: string) => {
+    setSelectedFont(font);
+    localStorage.setItem('selectedFont', font);
+  };
+
+  // Save font size to localStorage when it changes
+  const handleFontSizeChange = (size: number) => {
+    setFontSize(size);
+    localStorage.setItem('fontSize', size.toString());
   };
 
   const handleImageUpload = async (quoteId: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,15 +217,21 @@ export default function Home() {
     }
   };
 
-  const updateQuoteInput = (quoteId: string, field: keyof QuoteInput, value: string) => {
+  const updateQuoteInput = (quoteId: string, field: keyof QuoteInput, value: string | number) => {
     setQuoteInputs(prev => prev.map(q => 
       q.id === quoteId ? { ...q, [field]: value } : q
     ));
   };
 
+  const updateQuoteFontSize = (quoteId: string, size: number | undefined) => {
+    setQuoteInputs(prev => prev.map(q => 
+      q.id === quoteId ? { ...q, fontSize: size } : q
+    ));
+  };
+
   const addNewQuoteInput = () => {
     const newId = Date.now().toString();
-    setQuoteInputs(prev => [...prev, { id: newId, text: '', highlightedWord: '', imageUrl: null }]);
+    setQuoteInputs(prev => [...prev, { id: newId, text: '', highlightedWord: '', imageUrl: null, textPosition: 'bottom' }]);
   };
 
   const removeQuoteInput = (quoteId: string) => {
@@ -213,6 +283,8 @@ export default function Home() {
             highlightedWord: input.highlightedWord,
             imageUrl: input.imageUrl!,
             image: img,
+            textPosition: input.textPosition,
+            fontSize: input.fontSize,
             cropData: result.topCrop,
           });
         } catch (error) {
@@ -224,6 +296,8 @@ export default function Home() {
             highlightedWord: input.highlightedWord,
             imageUrl: input.imageUrl!,
             image: img,
+            textPosition: input.textPosition,
+            fontSize: input.fontSize,
           });
         }
       };
@@ -292,22 +366,37 @@ export default function Home() {
       ctx.drawImage(quote.image, offsetX, offsetY, drawWidth, drawHeight);
     }
 
-    // Add gradient overlay (black at bottom 70% coverage to transparent at top)
+    // Add gradient overlay based on text position
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');      // Transparent at top
-    gradient.addColorStop(0.3, 'rgba(0, 0, 0, 0)');    // Start gradient at 30%
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');   // Dark at bottom
+    if (quote.textPosition === 'top') {
+      // Dark at top, transparent at bottom (for top text)
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.85)');   // Dark at top
+      gradient.addColorStop(0.3, 'rgba(0, 0, 0, 0)');   // Start fading at 30%
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');      // Transparent at bottom
+    } else {
+      // Transparent at top, dark at bottom (for bottom text - default)
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');      // Transparent at top
+      gradient.addColorStop(0.3, 'rgba(0, 0, 0, 0)');    // Start gradient at 30%
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');   // Dark at bottom
+    }
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Use per-quote font size if available, otherwise use global font size
+    const effectiveFontSize = quote.fontSize || fontSize;
+    
     // Calculate text layout first to know where to place quote marks
     const words = quote.text.toUpperCase().split(' ');
     const centerX = canvas.width / 2;
-    const lineHeight = 90;
+    const lineHeight = effectiveFontSize * 1.3; // Proportional to font size
     const maxWidth = 900;
     const bottomPadding = 200; // Space from bottom for artist name
     
-    ctx.font = 'bold 70px Arial, sans-serif';
+    // Get selected font family
+    const fontOption = FONT_OPTIONS.find(f => f.value === selectedFont);
+    const fontFamily = fontOption ? fontOption.family : 'Arial, sans-serif';
+    
+    ctx.font = `bold ${effectiveFontSize}px ${fontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -330,9 +419,18 @@ export default function Home() {
       lines.push(currentLine.trim());
     }
 
-    // Calculate starting Y position (text at bottom)
+    // Calculate starting Y position based on text position
     const totalTextHeight = lines.length * lineHeight;
-    let startY = canvas.height - bottomPadding - totalTextHeight;
+    const topPadding = 200; // Space from top for artist name when text is at top
+    let startY: number;
+    
+    if (quote.textPosition === 'top') {
+      // Text starts from top
+      startY = topPadding + (lineHeight / 2);
+    } else {
+      // Text at bottom (default)
+      startY = canvas.height - bottomPadding - totalTextHeight;
+    }
 
     // Draw opening quotation mark aligned with the start of the first text line
     if (lines.length > 0) {
@@ -342,9 +440,10 @@ export default function Home() {
       const firstLineX = centerX - (firstLineWidth / 2);
       const firstLineY = startY; // Using 'middle' baseline, this is vertical center of the line
 
-      // Use a thinner, typographic opening quote
+      // Use a thinner, typographic opening quote (proportional to font size)
       const openingQuote = '“';
-      ctx.font = '300 110px "Times New Roman", Georgia, serif';
+      const quoteMarkSize = effectiveFontSize * 1.57; // Proportional to font size (~110px for 70px font)
+      ctx.font = `300 ${quoteMarkSize}px "Times New Roman", Georgia, serif`;
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'left';
 
@@ -357,7 +456,7 @@ export default function Home() {
     }
 
     // Draw quote text lines
-    ctx.font = 'bold 70px Arial, sans-serif';
+    ctx.font = `bold ${effectiveFontSize}px ${fontFamily}`;
     ctx.textAlign = 'center';
     
     lines.forEach((line, lineIndex) => {
@@ -384,11 +483,14 @@ export default function Home() {
       });
     });
 
-    // Draw artist name at the bottom
+    // Draw artist name - opposite side of text position
     ctx.font = '36px Arial, sans-serif';
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
-    ctx.fillText(artistName.toUpperCase(), centerX, canvas.height - 100);
+    const artistNameY = quote.textPosition === 'top' 
+      ? canvas.height - 100  // At bottom when text is at top
+      : canvas.height - 100;  // At bottom when text is at bottom (default)
+    ctx.fillText(artistName.toUpperCase(), centerX, artistNameY);
   };
 
   const downloadImage = (quoteId: string, index: number) => {
@@ -422,7 +524,7 @@ export default function Home() {
         drawQuoteOnCanvas(canvas, quote);
       }
     });
-  }, [generatedQuotes, artistName, highlightColor]);
+  }, [generatedQuotes, artistName, highlightColor, selectedFont, fontSize]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
@@ -445,29 +547,113 @@ export default function Home() {
                 placeholder="Enter artist name"
               />
             </div>
-            <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Highlight Color (for emphasized words)
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="color"
+                    value={highlightColor}
+                    onChange={(e) => handleHighlightColorChange(e.target.value)}
+                    className="h-12 w-20 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={highlightColor}
+                    onChange={(e) => handleHighlightColorChange(e.target.value)}
+                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                    placeholder="#FF8C00"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Font Family (for quote text)
+                </label>
+                <select
+                  value={selectedFont}
+                  onChange={(e) => handleFontChange(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.family || 'Arial, sans-serif' }}
+                >
+                  {FONT_OPTIONS.map((font) => (
+                    <option key={font.value} value={font.value} style={{ fontFamily: font.family }}>
+                      {font.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-4">
               <label className="block text-sm font-medium mb-2">
-                Highlight Color (for emphasized words)
+                Font Size: {fontSize}px
               </label>
               <div className="flex items-center gap-4">
                 <input
-                  type="color"
-                  value={highlightColor}
-                  onChange={(e) => handleHighlightColorChange(e.target.value)}
-                  className="h-12 w-20 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer"
+                  type="range"
+                  min="40"
+                  max="120"
+                  value={fontSize}
+                  onChange={(e) => handleFontSizeChange(parseInt(e.target.value, 10))}
+                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
                 <input
-                  type="text"
-                  value={highlightColor}
-                  onChange={(e) => handleHighlightColorChange(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                  placeholder="#FF8C00"
+                  type="number"
+                  min="40"
+                  max="120"
+                  value={fontSize}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 40 && val <= 120) {
+                      handleFontSizeChange(val);
+                    }
+                  }}
+                  className="w-24 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
                 />
               </div>
               <p className="text-xs text-gray-400 mt-1">
-                Changes apply to all quotes. Settings are saved automatically.
+                Adjust the font size for your quote text (40px - 120px)
               </p>
             </div>
+            {/* Font Preview */}
+            <div className="mt-4 p-4 bg-gray-900 rounded-lg border border-gray-700">
+              <p className="text-xs text-gray-400 mb-2">Preview:</p>
+              <div
+                className="text-white font-bold uppercase leading-tight"
+                style={{ 
+                  fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.family || 'Arial, sans-serif',
+                  fontSize: `${fontSize}px`
+                }}
+              >
+                Sample Quote Text
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <span
+                  className="font-bold uppercase"
+                  style={{ 
+                    fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.family || 'Arial, sans-serif',
+                    color: highlightColor,
+                    fontSize: `${fontSize * 0.8}px`
+                  }}
+                >
+                  Highlighted
+                </span>
+                <span
+                  className="font-bold uppercase text-white"
+                  style={{ 
+                    fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.family || 'Arial, sans-serif',
+                    fontSize: `${fontSize * 0.8}px`
+                  }}
+                >
+                  Word
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Changes apply to all quotes. Settings are saved automatically.
+            </p>
           </div>
         </div>
 
@@ -542,6 +728,62 @@ export default function Home() {
                       className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter word to highlight"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Text Position
+                    </label>
+                    <select
+                      value={quoteInput.textPosition}
+                      onChange={(e) => updateQuoteInput(quoteInput.id, 'textPosition', e.target.value as 'top' | 'bottom')}
+                      className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="bottom">Bottom (Default)</option>
+                      <option value="top">Top</option>
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {quoteInput.textPosition === 'top' 
+                        ? 'Text will appear at the top with gradient fading downward'
+                        : 'Text will appear at the bottom with gradient fading upward'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Font Size Override (optional)
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="40"
+                        max="120"
+                        value={quoteInput.fontSize || fontSize}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          updateQuoteFontSize(quoteInput.id, val === fontSize ? undefined : val);
+                        }}
+                        className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
+                      <input
+                        type="number"
+                        min="40"
+                        max="120"
+                        value={quoteInput.fontSize || fontSize}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val) && val >= 40 && val <= 120) {
+                            updateQuoteFontSize(quoteInput.id, val === fontSize ? undefined : val);
+                          }
+                        }}
+                        className="w-24 px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {quoteInput.fontSize 
+                        ? `Using custom size: ${quoteInput.fontSize}px (global default: ${fontSize}px)`
+                        : `Using global default: ${fontSize}px`}
+                    </p>
                   </div>
                 </div>
               </div>

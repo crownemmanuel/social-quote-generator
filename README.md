@@ -15,10 +15,15 @@ Create stunning quote graphics with batch processing, smart image cropping, and 
 - **HEIC Support**: Automatically converts iPhone HEIC/HEIF images to JPEG
 - **Smart Image Cropping**: Uses smartcrop.js AI to intelligently crop images, focusing on faces and areas of interest
 - **Quote Text Input**: Add your inspirational quotes
+- **Text Position Control**: Choose top or bottom positioning for each quote (default: bottom)
+- **Dynamic Gradient**: Gradient automatically adjusts based on text position (dark where text is, transparent elsewhere)
 - **Word Highlighting**: Highlight specific words with customizable colors
 - **Custom Highlight Color**: Choose any color for highlighted words with a color picker
+- **Font Selection**: Choose from 11 beautiful Google Fonts optimized for social media quotes (default: Oswald)
+- **Font Size Control**: Adjustable font size from 40px to 120px with live preview (default: 70px)
+- **Per-Quote Font Size Override**: Override the global font size for individual quotes (optional)
 - **Global Artist Name**: Set an artist name that appears on all generated quotes
-- **Persistent Settings**: Artist name and highlight color are saved in your browser
+- **Persistent Settings**: Artist name, highlight color, font selection, and font size are saved in your browser
 - **Add/Remove Quotes**: Dynamically add or remove quote inputs before generation
 - **Batch Download**: Download all generated quotes at once or individually
 - **Individual Downloads**: Download each generated quote as a PNG image
@@ -28,10 +33,25 @@ Create stunning quote graphics with batch processing, smart image cropping, and 
 The generated quotes follow this design:
 
 - Large quotation marks positioned at the start of text
-- Centered, bold quote text in white (positioned at bottom)
+- Centered, bold quote text in white
 - Optional word highlighting in your chosen color (default: orange #FF8C00)
 - Artist name at the bottom
-- Gradient overlay (transparent top 30%, dark bottom 70%) on the background image
+- Dynamic gradient overlay that adjusts based on text position
+
+### Text Position Options
+
+**Bottom (Default):**
+
+- Text appears at the bottom of the image
+- Gradient: Transparent at top (30%), dark at bottom (70%)
+- Perfect for showcasing the background image while keeping text readable
+
+**Top:**
+
+- Text appears at the top of the image
+- Gradient: Dark at top (70%), transparent at bottom (30%)
+- Great for emphasizing the quote while showing background details below
+- Artist name remains at the bottom
 
 ## Getting Started
 
@@ -63,11 +83,15 @@ npm start
 1. **Configure Settings**:
    - Enter your artist name (saved automatically for future use)
    - (Optional) Choose a custom highlight color (defaults to orange #FF8C00)
+   - (Optional) Select a font family from 11 Google Fonts (defaults to Oswald)
+   - (Optional) Adjust font size using the slider or number input (defaults to 70px)
 2. **Add Quotes**: Use the "+ Add New Quote" button to add multiple quotes
 3. **For Each Quote**:
    - Upload a background image (supports HEIC, JPEG, PNG, etc.)
    - Enter your quote text
    - (Optional) Enter a word to highlight with your chosen color
+   - (Optional) Choose text position: Top or Bottom (default: Bottom)
+   - (Optional) Override font size for this specific quote (uses global default if not set)
 4. **Generate All**: Click "Generate All Quotes" to create all images at once
 5. **Download**:
    - Click "Download All" to download all quotes at once
@@ -132,6 +156,24 @@ HEIC (High Efficiency Image Container) is the default photo format on iPhones si
 
 Just upload your iPhone photos directly - the app handles the rest!
 
+## Available Fonts
+
+The app includes 11 carefully selected Google Fonts optimized for social media quotes:
+
+- **Montserrat** (Default) - Modern, geometric sans-serif
+- **Playfair Display** - Elegant serif with high contrast
+- **Oswald** - Bold, condensed sans-serif for impact
+- **Raleway** - Clean, elegant sans-serif
+- **Bebas Neue** - Bold, attention-grabbing display font
+- **Poppins** - Friendly, modern geometric sans-serif
+- **Lato** - Warm, professional sans-serif
+- **Roboto** - Versatile, modern sans-serif
+- **Inter** - Optimized for digital screens
+- **Barlow** - Bold, contemporary sans-serif
+- **Arial** - Classic, reliable fallback
+
+Fonts are loaded dynamically from Google Fonts and cached for performance. The selected font applies to all quote text in your generated images.
+
 ## Persistent Settings
 
 Your preferences are automatically saved in your browser's localStorage:
@@ -140,6 +182,7 @@ Your preferences are automatically saved in your browser's localStorage:
 
 - **Artist Name**: Your configured artist name
 - **Highlight Color**: Your chosen color for highlighted words
+- **Font Selection**: Your selected font family
 
 ### How It Works
 
