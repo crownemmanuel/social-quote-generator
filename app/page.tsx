@@ -10,6 +10,7 @@ interface QuoteInput {
   imageUrl: string | null;
   textPosition: 'top' | 'bottom';
   fontSize?: number; // Optional per-quote font size override
+  gradientStart?: number; // Optional per-quote gradient start position (0-1, default 0.5)
 }
 
 interface GeneratedQuote {
@@ -20,6 +21,7 @@ interface GeneratedQuote {
   image: HTMLImageElement;
   textPosition: 'top' | 'bottom';
   fontSize?: number; // Optional per-quote font size override
+  gradientStart?: number; // Optional per-quote gradient start position (0-1, default 0.5)
   cropData?: {
     x: number;
     y: number;
@@ -54,6 +56,7 @@ export default function Home() {
   const [generatedQuotes, setGeneratedQuotes] = useState<GeneratedQuote[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRefs = useRef<{ [key: string]: HTMLCanvasElement | null }>({});
+  const isInitialLoad = useRef(true);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -61,6 +64,7 @@ export default function Home() {
     const savedHighlightColor = localStorage.getItem('highlightColor');
     const savedFont = localStorage.getItem('selectedFont');
     const savedFontSize = localStorage.getItem('fontSize');
+    const savedQuoteInputs = localStorage.getItem('quoteInputs');
     
     if (savedArtistName) {
       setArtistName(savedArtistName);
@@ -74,7 +78,37 @@ export default function Home() {
     if (savedFontSize) {
       setFontSize(parseInt(savedFontSize, 10));
     }
+    if (savedQuoteInputs) {
+      try {
+        const parsed = JSON.parse(savedQuoteInputs);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setQuoteInputs(parsed);
+        }
+      } catch (error) {
+        console.error('Failed to parse saved quote inputs:', error);
+      }
+    }
+    
+    // Mark initial load as complete after a short delay to ensure state is set
+    setTimeout(() => {
+      isInitialLoad.current = false;
+    }, 100);
   }, []);
+
+  // Save quoteInputs to localStorage whenever they change (but not during initial load)
+  useEffect(() => {
+    if (!isInitialLoad.current && quoteInputs.length > 0) {
+      try {
+        localStorage.setItem('quoteInputs', JSON.stringify(quoteInputs));
+      } catch (error) {
+        console.error('Failed to save quote inputs to localStorage:', error);
+        // If localStorage is full, try to clear old data or notify user
+        if (error instanceof DOMException && error.code === 22) {
+          alert('Storage is full. Please clear some data or use fewer images.');
+        }
+      }
+    }
+  }, [quoteInputs]);
 
   // Load Google Fonts dynamically
   useEffect(() => {
@@ -229,6 +263,12 @@ export default function Home() {
     ));
   };
 
+  const updateQuoteGradientStart = (quoteId: string, start: number | undefined) => {
+    setQuoteInputs(prev => prev.map(q => 
+      q.id === quoteId ? { ...q, gradientStart: start } : q
+    ));
+  };
+
   const addNewQuoteInput = () => {
     const newId = Date.now().toString();
     setQuoteInputs(prev => [...prev, { id: newId, text: '', highlightedWord: '', imageUrl: null, textPosition: 'bottom' }]);
@@ -285,6 +325,7 @@ export default function Home() {
             image: img,
             textPosition: input.textPosition,
             fontSize: input.fontSize,
+            gradientStart: input.gradientStart,
             cropData: result.topCrop,
           });
         } catch (error) {
@@ -298,12 +339,23 @@ export default function Home() {
             image: img,
             textPosition: input.textPosition,
             fontSize: input.fontSize,
+            gradientStart: input.gradientStart,
           });
         }
       };
       img.onerror = () => reject(new Error('Failed to load image'));
       img.src = input.imageUrl!;
     });
+  };
+
+  // Helper function to normalize words for comparison (removes punctuation, trims, uppercases)
+  const normalizeWord = (word: string): string => {
+    if (!word || typeof word !== 'string') return '';
+    // Trim first, then remove punctuation, then uppercase
+    return word
+      .trim() // Remove leading/trailing whitespace first
+      .replace(/[^\w]/g, '') // Remove all punctuation and special characters (keep only letters, numbers, underscore)
+      .toUpperCase(); // Convert to uppercase for case-insensitive comparison
   };
 
   const drawQuoteOnCanvas = (canvas: HTMLCanvasElement, quote: GeneratedQuote) => {
@@ -367,16 +419,19 @@ export default function Home() {
     }
 
     // Add gradient overlay based on text position
+    // Use per-quote gradientStart if available, otherwise default to 0.5 (50%)
+    const gradientStartPosition = quote.gradientStart !== undefined ? quote.gradientStart : 0.5;
+    
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     if (quote.textPosition === 'top') {
       // Dark at top, transparent at bottom (for top text)
       gradient.addColorStop(0, 'rgba(0, 0, 0, 0.85)');   // Dark at top
-      gradient.addColorStop(0.3, 'rgba(0, 0, 0, 0)');   // Start fading at 30%
+      gradient.addColorStop(gradientStartPosition, 'rgba(0, 0, 0, 0)');   // Start fading at gradientStartPosition
       gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');      // Transparent at bottom
     } else {
       // Transparent at top, dark at bottom (for bottom text - default)
       gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');      // Transparent at top
-      gradient.addColorStop(0.3, 'rgba(0, 0, 0, 0)');    // Start gradient at 30%
+      gradient.addColorStop(gradientStartPosition, 'rgba(0, 0, 0, 0)');    // Start gradient at gradientStartPosition
       gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');   // Dark at bottom
     }
     ctx.fillStyle = gradient;
@@ -459,8 +514,19 @@ export default function Home() {
     ctx.font = `bold ${effectiveFontSize}px ${fontFamily}`;
     ctx.textAlign = 'center';
     
+    // Normalize the highlighted word for comparison (only if it exists)
+    const normalizedHighlightedWord = quote.highlightedWord 
+      ? normalizeWord(quote.highlightedWord.trim())
+      : '';
+    
+    // Debug logging (can be removed in production)
+    if (normalizedHighlightedWord) {
+      console.log('Looking for highlighted word:', normalizedHighlightedWord);
+    }
+    
     lines.forEach((line, lineIndex) => {
-      const lineWords = line.split(' ');
+      // Split by spaces and filter out empty strings (handles multiple spaces)
+      const lineWords = line.split(/\s+/).filter(word => word.trim().length > 0);
       const y = startY + (lineIndex * lineHeight);
       
       // Calculate total width of line to position words
@@ -468,7 +534,20 @@ export default function Home() {
       let lineX = centerX - (lineWidth / 2);
       
       lineWords.forEach((lineWord) => {
-        if (lineWord === quote.highlightedWord.toUpperCase()) {
+        // Normalize the word from the line and compare with normalized highlighted word
+        const normalizedLineWord = normalizeWord(lineWord);
+        
+        // Debug logging for first word (can be removed in production)
+        if (normalizedHighlightedWord && lineIndex === 0 && lineWords.indexOf(lineWord) === 0) {
+          console.log('Comparing:', normalizedLineWord, '===', normalizedHighlightedWord, '?', normalizedLineWord === normalizedHighlightedWord);
+        }
+        
+        const shouldHighlight = normalizedHighlightedWord && 
+                               normalizedHighlightedWord.length > 0 &&
+                               normalizedLineWord.length > 0 &&
+                               normalizedLineWord === normalizedHighlightedWord;
+        
+        if (shouldHighlight) {
           ctx.fillStyle = highlightColor;
         } else {
           ctx.fillStyle = '#ffffff';
@@ -517,6 +596,23 @@ export default function Home() {
     });
   };
 
+  const clearAllAndStartNew = () => {
+    if (confirm('Are you sure you want to clear all data and start fresh? This will remove all saved quotes and settings.')) {
+      // Clear localStorage
+      localStorage.clear();
+      
+      // Reset all state to defaults
+      setArtistName('');
+      setHighlightColor('#FF8C00');
+      setSelectedFont('Oswald');
+      setFontSize(70);
+      setQuoteInputs([
+        { id: Date.now().toString(), text: '', highlightedWord: '', imageUrl: null, textPosition: 'bottom' }
+      ]);
+      setGeneratedQuotes([]);
+    }
+  };
+
   useEffect(() => {
     generatedQuotes.forEach((quote) => {
       const canvas = canvasRefs.current[quote.id];
@@ -533,7 +629,15 @@ export default function Home() {
 
         {/* Settings Section */}
         <div className="bg-gray-800 rounded-lg p-6 mb-8 shadow-xl">
-          <h2 className="text-2xl font-semibold mb-4">Global Settings</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Global Settings</h2>
+            <button
+              onClick={clearAllAndStartNew}
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition duration-200 text-sm"
+            >
+              🗑️ Clear All & Start New
+            </button>
+          </div>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
@@ -724,10 +828,13 @@ export default function Home() {
                     <input
                       type="text"
                       value={quoteInput.highlightedWord}
-                      onChange={(e) => updateQuoteInput(quoteInput.id, 'highlightedWord', e.target.value)}
+                      onChange={(e) => updateQuoteInput(quoteInput.id, 'highlightedWord', e.target.value.trim())}
                       className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter word to highlight"
+                      placeholder="Enter word to highlight (punctuation ignored)"
                     />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Enter the word as it appears in your quote. Punctuation and case are ignored for matching.
+                    </p>
                   </div>
 
                   <div>
@@ -783,6 +890,46 @@ export default function Home() {
                       {quoteInput.fontSize 
                         ? `Using custom size: ${quoteInput.fontSize}px (global default: ${fontSize}px)`
                         : `Using global default: ${fontSize}px`}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Gradient Transparency Start (optional)
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={(quoteInput.gradientStart !== undefined ? quoteInput.gradientStart : 0.5) * 100}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) / 100;
+                          updateQuoteGradientStart(quoteInput.id, val === 0.5 ? undefined : val);
+                        }}
+                        className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={Math.round((quoteInput.gradientStart !== undefined ? quoteInput.gradientStart : 0.5) * 100)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) / 100;
+                          if (!isNaN(val) && val >= 0 && val <= 1) {
+                            updateQuoteGradientStart(quoteInput.id, val === 0.5 ? undefined : val);
+                          }
+                        }}
+                        className="w-24 px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                      />
+                      <span className="text-sm text-gray-400 w-8">%</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {quoteInput.gradientStart !== undefined
+                        ? `Gradient starts at ${Math.round(quoteInput.gradientStart * 100)}% (default: 50%)`
+                        : `Using default: 50% - Gradient starts fading at 50% from ${quoteInput.textPosition === 'top' ? 'top' : 'bottom'}`}
                     </p>
                   </div>
                 </div>

@@ -17,6 +17,7 @@ Create stunning quote graphics with batch processing, smart image cropping, and 
 - **Quote Text Input**: Add your inspirational quotes
 - **Text Position Control**: Choose top or bottom positioning for each quote (default: bottom)
 - **Dynamic Gradient**: Gradient automatically adjusts based on text position (dark where text is, transparent elsewhere)
+- **Per-Quote Gradient Control**: Adjust gradient transparency start point (0-100%, default: 50%) for each quote
 - **Word Highlighting**: Highlight specific words with customizable colors
 - **Custom Highlight Color**: Choose any color for highlighted words with a color picker
 - **Font Selection**: Choose from 11 beautiful Google Fonts optimized for social media quotes (default: Oswald)
@@ -43,15 +44,24 @@ The generated quotes follow this design:
 **Bottom (Default):**
 
 - Text appears at the bottom of the image
-- Gradient: Transparent at top (30%), dark at bottom (70%)
+- Gradient: Transparent at top, starts fading at customizable position (default: 50%), dark at bottom
 - Perfect for showcasing the background image while keeping text readable
 
 **Top:**
 
 - Text appears at the top of the image
-- Gradient: Dark at top (70%), transparent at bottom (30%)
+- Gradient: Dark at top, starts fading at customizable position (default: 50%), transparent at bottom
 - Great for emphasizing the quote while showing background details below
 - Artist name remains at the bottom
+
+### Gradient Transparency Control
+
+Each quote can have its own gradient start position:
+
+- **0%**: Gradient starts immediately (more transparent area)
+- **50%** (Default): Gradient starts at the middle of the image
+- **100%**: Gradient starts at the end (more dark area)
+- Adjust using the slider or number input (0-100% in 5% increments)
 
 ## Getting Started
 
@@ -92,6 +102,7 @@ npm start
    - (Optional) Enter a word to highlight with your chosen color
    - (Optional) Choose text position: Top or Bottom (default: Bottom)
    - (Optional) Override font size for this specific quote (uses global default if not set)
+   - (Optional) Adjust gradient transparency start point (0-100%, default: 50%)
 4. **Generate All**: Click "Generate All Quotes" to create all images at once
 5. **Download**:
    - Click "Download All" to download all quotes at once
