@@ -2,6 +2,12 @@
 
 A Next.js application for generating beautiful social media quote images with customizable text and backgrounds.
 
+## 🚀 Live Demo
+
+**Try it now:** [https://social-quote-generator-dc2p.vercel.app/](https://social-quote-generator-dc2p.vercel.app/)
+
+Create stunning quote graphics with batch processing, smart image cropping, and customizable colors - no installation required!
+
 ## Features
 
 - **Batch Quote Generation**: Add multiple quotes at once and generate them all together
