@@ -509,10 +509,23 @@ export default function Home() {
       gradient.addColorStop(gradientStartPosition, 'rgba(0, 0, 0, 0)');   // Start fading at gradientStartPosition
       gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');      // Transparent at bottom
     } else {
-      // Transparent at top, dark at bottom (for bottom text - default)
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');      // Transparent at top
-      gradient.addColorStop(gradientStartPosition, 'rgba(0, 0, 0, 0)');    // Start gradient at gradientStartPosition
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');   // Dark at bottom
+      // For bottom text: gradientStartPosition controls where transition starts from bottom
+      // 0 = completely black at bottom (1.0), smooth transition upward
+      // Higher values = transition starts later, more transparent area at top
+      // gradientStartPosition represents where the transition begins (0 = starts immediately from bottom)
+      const transitionStart = 1 - gradientStartPosition; // Position where transition starts
+      
+      if (gradientStartPosition === 0) {
+        // Completely black at bottom, smooth transition upward
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');      // Transparent at top
+        gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');  // Mid transition
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 1.0)');   // Completely black at bottom
+      } else {
+        // Transparent at top until transitionStart, then transitions to dark at bottom
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');      // Transparent at top
+        gradient.addColorStop(transitionStart, 'rgba(0, 0, 0, 0)');    // Start transition here
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');   // Dark at bottom
+      }
     }
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
