@@ -13,7 +13,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <div className="w-full md:w-[60%] md:mx-auto">
+          {children}
+        </div>
+      </body>
     </html>
   );
 }
